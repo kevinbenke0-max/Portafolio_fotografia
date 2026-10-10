@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portafolio de Fotografía</title>
+  
+  <!-- Tipografías elegantes de Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #0f0f0f;
+      --card-bg: #181818;
+      --text-main: #f5f5f7;
+      --text-muted: #a1a1a6;
+      --accent: #d4af37; /* Dorado tenue */
+      --font-title: 'Cormorant Garamond', serif;
+      --font-body: 'Montserrat', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* --- NAVEGACIÓN --- */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 50px;
+      background: rgba(15, 15, 15, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .logo {
+      font-family: var(--font-title);
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-left: 30px;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent);
+    }
+
+    /* --- PORTADA PRINCIPAL --- */
+    .hero {
+      height: 100vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(rgba(0,0,0,0.4), rgba(15,15,15,1)), 
+                  url('https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      padding: 0 20px;
+    }
+
+    .hero-subtitle {
+      font-size: 0.85rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 15px;
+    }
+
+    .hero-title {
+      font-family: var(--font-title);
+      font-size: 4rem;
+      font-weight: 300;
+      letter-spacing: 3px;
+      line-height: 1.1;
+      margin-bottom: 25px;
+    }
+
+    .btn-hero {
+      display: inline-block;
+      padding: 12px 35px;
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .btn-hero:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* --- ÁLBUMES Y PORTADAS --- */
+    .section-title {
+      text-align: center;
+      font-family: var(--font-title);
+      font-size: 2.8rem;
+      font-weight: 300;
+      letter-spacing: 2px;
+      margin: 80px 0 40px;
+    }
+
+    .albums-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 30px;
+      padding: 0 50px 80px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .album-card {
+      position: relative;
+      height: 450px;
+      overflow: hidden;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .album-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .album-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 30px;
+      transition: opacity 0.3s;
+    }
+
+    .album-card:hover img {
+      transform: scale(1.05);
+    }
+
+    .album-category {
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .album-name {
+      font-family: var(--font-title);
+      font-size: 2rem;
+      font-weight: 300;
+      margin-top: 5px;
+    }
+
+    /* --- GALERÍA / FAVORITAS --- */
+    .gallery-container {
+      padding: 0 50px 100px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .photo-item {
+      position: relative;
+      height: 380px;
+      overflow: hidden;
+      border-radius: 4px;
+      background-color: var(--card-bg);
+    }
+
+    .photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .like-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .like-btn.active {
+      color: #e74c3c;
+      background: rgba(255,255,255,0.9);
+    }
+
+    /* --- FOOTER --- */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 20px; }
+      .hero-title { font-size: 2.8rem; }
+      .albums-grid, .gallery-container { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navegación superior -->
+  <nav>
+    <div class="logo">Instantes</div>
+    <div class="nav-links">
+      <a href="#portadas">Colecciones</a>
+      <a href="#galeria">Galería</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+  </nav>
+
+  <!-- Portada Principal -->
+  <header class="hero">
+    <div class="hero-content">
+      <p class="hero-subtitle">Estudio de Fotografía</p>
+      <h1 class="hero-title">Capturando la elegancia de tus recuerdos</h1>
+      <a href="#portadas" class="btn-hero">Ver Colecciones</a>
+    </div>
+  </header>
+
+  <!-- Sección de Álbumes con Portadas Elegantes -->
+  <section id="portadas">
+    <h2 class="section-title">Colecciones Destacadas</h2>
+    <div class="albums-grid">
+      
+      <div class="album-card">
+        <img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80" alt="Boda Elegante">
+        <div class="album-overlay">
+          <span class="album-category">Bodas & Eventos</span>
+          <h3 class="album-name">Romance Urbano</h3>
+        </div>
+      </div>
+
+      <div class="album-card">
+        <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=800&q=80" alt="Retrato Editorial">
+        <div class="album-overlay">
+          <span class="album-category">Retratos</span>
+          <h3 class="album-name">Luz Studio</h3>
+        </div>
+      </div>
+
+      <div class="album-card">
+        <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=800&q=80" alt="Moda">
+        <div class="album-overlay">
+          <span class="album-category">Editorial</span>
+          <h3 class="album-name">Alta Costura</h3>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Sección Galería con Selección de Favoritas -->
+  <section id="galeria">
+    <h2 class="section-title">Galería Reciente</h2>
+    <div class="gallery-container">
+      <div class="photo-grid" id="photoGrid">
+        <!-- Las fotos se cargan dinámicamente -->
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Fotografía Editorial. Todos los derechos reservados.</p>
+  </footer>
+
+  <script>
+    // Lista de fotografías de la galería
+    const photos = [
+      { id: 1, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=600&q=80' },
+      { id: 2, url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80' },
+      { id: 3, url: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80' },
+      { id: 4, url: 'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=600&q=80' }
+    ];
+
+    const photoGrid = document.getElementById('photoGrid');
+
+    // Renderizar fotos en el DOM
+    photos.forEach(photo => {
+      const item = document.createElement('div');
+      item.className = 'photo-item';
+      item.innerHTML = `
+        <img src="${photo.url}" alt="Foto de portafolio">
+        <button class="like-btn" onclick="toggleLike(this, ${photo.id})">♥</button>
+      `;
+      photoGrid.appendChild(item);
+    });
+
+    // Función para marcar fotos favoritas
+    function toggleLike(button, id) {
+      button.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>
