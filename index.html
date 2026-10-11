@@ -173,7 +173,7 @@
       letter-spacing: 1px;
       cursor: pointer;
       border-radius: 3px;
-      display: none; /* Se muestra solo en modo admin */
+      display: none;
       text-transform: uppercase;
     }
 
@@ -220,6 +220,12 @@
       border-radius: 3px;
       font-family: var(--font-body);
       font-size: 0.9rem;
+    }
+
+    .form-group input[type="file"] {
+      padding: 10px;
+      cursor: pointer;
+      color: var(--text-muted);
     }
 
     .form-group input:focus {
@@ -303,8 +309,8 @@
           <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Alta Costura" required>
         </div>
         <div class="form-group">
-          <label>Enlace de la Foto de Portada</label>
-          <input type="url" id="albumImage" placeholder="https://ejemplo.com/foto.jpg" required>
+          <label>Seleccionar Foto de Portada (Desde la Galería)</label>
+          <input type="file" id="albumImageFile" accept="image/*" required>
         </div>
         <button type="submit" class="btn-submit">Publicar Nuevo Álbum</button>
       </form>
@@ -373,29 +379,37 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Agregar un nuevo álbum desde el formulario
+    // Agregar un nuevo álbum leyendo la imagen seleccionada del dispositivo
     function agregarAlbum(event) {
       event.preventDefault();
       const title = document.getElementById('albumTitle').value;
       const category = document.getElementById('albumCategory').value;
-      const image = document.getElementById('albumImage').value;
+      const fileInput = document.getElementById('albumImageFile');
 
-      const nuevoAlbum = {
-        id: Date.now(),
-        title,
-        category,
-        image
-      };
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          const nuevoAlbum = {
+            id: Date.now(),
+            title,
+            category,
+            image: e.target.result // Guarda la imagen convertida
+          };
 
-      albums.unshift(nuevoAlbum); // Agrega al principio
-      localStorage.setItem('fotografia_albums', JSON.stringify(albums));
+          albums.unshift(nuevoAlbum);
+          localStorage.setItem('fotografia_albums', JSON.stringify(albums));
 
-      alert('¡Álbum publicado exitosamente!');
-      document.getElementById('uploadForm').reset();
-      toggleAdminPanel(); // Vuelve a la vista pública para ver el cambio
+          alert('¡Álbum publicado exitosamente!');
+          document.getElementById('uploadForm').reset();
+          toggleAdminPanel();
+        }
+
+        reader.readAsDataURL(fileInput.files[0]);
+      }
     }
 
-    // Eliminar álbum (disponible solo en modo administrador)
+    // Eliminar álbum
     function eliminarAlbum(id) {
       if (confirm('¿Estás segura de que deseas eliminar este álbum?')) {
         albums = albums.filter(album => album.id !== id);
