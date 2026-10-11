@@ -178,6 +178,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      cursor: zoom-in;
     }
 
     .photo-actions {
@@ -224,6 +225,43 @@
       color: #000;
     }
 
+    /* --- VISOR DE PANTALLA COMPLETA (LIGHTBOX) --- */
+    #lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+
+    #lightbox img {
+      max-width: 95%;
+      max-height: 85vh;
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 25px;
+      right: 30px;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 2.5rem;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: color 0.3s;
+    }
+
+    .lightbox-close:hover {
+      color: var(--accent);
+    }
+
     /* Botón flotante para volver atrás */
     .btn-back-floating {
       position: fixed;
@@ -253,7 +291,7 @@
       color: #000;
     }
 
-    /* --- PANEL DE ADMINISTRACIÓN Y ACCESO --- */
+    /* --- PANEL DE ADMINISTRACIÓN --- */
     #admin-panel {
       display: none;
       padding: 130px 20px 80px;
@@ -327,7 +365,6 @@
 
     .btn-submit:hover { background: #b8972b; }
 
-    /* Lista de gestión de álbumes */
     .admin-albums-list {
       display: flex;
       flex-direction: column;
@@ -407,6 +444,12 @@
     </div>
   </nav>
 
+  <!-- Visor de Pantalla Completa (Lightbox) -->
+  <div id="lightbox" onclick="cerrarLightbox()">
+    <button class="lightbox-close" onclick="cerrarLightbox()">&times;</button>
+    <img id="lightboxImg" src="" alt="Vista ampliada">
+  </div>
+
   <!-- Botón Flotante para Volver -->
   <button id="floatingBackBtn" class="btn-back-floating" style="display: none;" onclick="cerrarAlbum()">
     ← Volver a Colecciones
@@ -430,8 +473,6 @@
 
   <!-- Panel de Administración -->
   <section id="admin-panel">
-    
-    <!-- TARJETA DE LOGIN / ACCESO CON CONTRASEÑA -->
     <div class="admin-box" id="authBox">
       <h2>Acceso Administrador</h2>
       <form onsubmit="validarContrasena(event)">
@@ -443,7 +484,6 @@
       </form>
     </div>
 
-    <!-- CONTENIDO PROTEGIDO DEL PANEL (Oculto por defecto hasta validar clave) -->
     <div id="protectedAdminContent" style="display: none;">
       <div class="admin-box">
         <h2>Gestión de Álbumes</h2>
@@ -469,7 +509,6 @@
         <div class="admin-albums-list" id="adminAlbumsList"></div>
       </div>
     </div>
-
   </section>
 
   <footer>
@@ -477,7 +516,7 @@
   </footer>
 
   <script>
-    const SECRET_PIN = "151124"; // Clave de acceso configurable
+    const SECRET_PIN = "151124";
     let isAuthenticated = false;
 
     let albums = JSON.parse(localStorage.getItem('fotografia_albums_v2')) || [
@@ -547,7 +586,7 @@
           const pCard = document.createElement('div');
           pCard.className = 'photo-card';
           pCard.innerHTML = `
-            <img src="${photo.url}" alt="Foto de sesión">
+            <img src="${photo.url}" alt="Foto de sesión" onclick="abrirLightbox('${photo.url}')">
             <div class="photo-actions">
               <button class="btn-action ${photo.userLiked ? 'liked' : ''}" onclick="darLike(${album.id}, ${photo.id})">
                 ♥ ${photo.likes}
@@ -564,7 +603,19 @@
       renderAdminList();
     }
 
-    // Validar contraseña de administración
+    // Funciones del Visor de Pantalla Completa (Lightbox)
+    function abrirLightbox(url) {
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      lightboxImg.src = url;
+      lightbox.style.display = 'flex';
+    }
+
+    function cerrarLightbox() {
+      const lightbox = document.getElementById('lightbox');
+      lightbox.style.display = 'none';
+    }
+
     function validarContrasena(event) {
       event.preventDefault();
       const inputPass = document.getElementById('adminPassword').value;
@@ -657,13 +708,11 @@
         linkColecciones.style.display = 'none';
         floatingBtn.style.display = 'none';
 
-        // Si no está autenticado, solicita la clave primero
         if (!isAuthenticated) {
           document.getElementById('authBox').style.display = 'block';
           document.getElementById('protectedAdminContent').style.display = 'none';
         }
       } else {
-        // Cierra sesión al salir
         isAuthenticated = false;
         adminPanel.style.display = 'none';
         publicView.style.display = 'block';
