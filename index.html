@@ -301,18 +301,18 @@
       <h2>Gestión de Álbumes</h2>
       <form id="uploadForm" onsubmit="agregarAlbum(event)">
         <div class="form-group">
-          <label>Título del Álbum / Sesión</label>
-          <input type="text" id="albumTitle" placeholder="Ej: Boda Valentina & Lucas" required>
+          <label>Título Base del Álbum / Sesión</label>
+          <input type="text" id="albumTitle" placeholder="Ej: Sesión Otoño" required>
         </div>
         <div class="form-group">
           <label>Categoría</label>
-          <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Alta Costura" required>
+          <input type="text" id="albumCategory" placeholder="Ej: Retratos, Bodas, Editorial" required>
         </div>
         <div class="form-group">
-          <label>Seleccionar Foto de Portada (Desde la Galería)</label>
-          <input type="file" id="albumImageFile" accept="image/*" required>
+          <label>Seleccionar Fotos (¡Puedes elegir Varias a la vez!)</label>
+          <input type="file" id="albumImageFile" accept="image/*" multiple required>
         </div>
-        <button type="submit" class="btn-submit">Publicar Nuevo Álbum</button>
+        <button type="submit" class="btn-submit">Publicar Álbum(es)</button>
       </form>
     </div>
   </section>
@@ -379,33 +379,44 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Agregar un nuevo álbum leyendo la imagen seleccionada del dispositivo
+    // Agregar múltiples álbumes a la vez desde las fotos seleccionadas
     function agregarAlbum(event) {
       event.preventDefault();
-      const title = document.getElementById('albumTitle').value;
+      const titleBase = document.getElementById('albumTitle').value;
       const category = document.getElementById('albumCategory').value;
       const fileInput = document.getElementById('albumImageFile');
 
-      if (fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-          const nuevoAlbum = {
-            id: Date.now(),
-            title,
-            category,
-            image: e.target.result // Guarda la imagen convertida
-          };
+      if (fileInput.files && fileInput.files.length > 0) {
+        const files = Array.from(fileInput.files);
+        let processedCount = 0;
 
-          albums.unshift(nuevoAlbum);
-          localStorage.setItem('fotografia_albums', JSON.stringify(albums));
+        files.forEach((file, index) => {
+          const reader = new FileReader();
+          
+          reader.onload = function(e) {
+            const albumTitle = files.length > 1 ? `${titleBase} (${index + 1})` : titleBase;
+            
+            const nuevoAlbum = {
+              id: Date.now() + index,
+              title: albumTitle,
+              category,
+              image: e.target.result
+            };
 
-          alert('¡Álbum publicado exitosamente!');
-          document.getElementById('uploadForm').reset();
-          toggleAdminPanel();
-        }
+            albums.unshift(nuevoAlbum);
+            processedCount++;
 
-        reader.readAsDataURL(fileInput.files[0]);
+            // Cuando procese todas las imágenes, guarda y actualiza la vista
+            if (processedCount === files.length) {
+              localStorage.setItem('fotografia_albums', JSON.stringify(albums));
+              alert(`¡Se publicaron ${files.length} álbum(es) exitosamente!`);
+              document.getElementById('uploadForm').reset();
+              toggleAdminPanel();
+            }
+          }
+
+          reader.readAsDataURL(file);
+        });
       }
     }
 
