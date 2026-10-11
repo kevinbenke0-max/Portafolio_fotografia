@@ -413,6 +413,40 @@
       color: #fff;
     }
 
+    /* Caja de respaldo para exportar el código actualizado */
+    .backup-box {
+      background: #111;
+      border: 1px dashed var(--accent);
+      padding: 20px;
+      border-radius: 4px;
+      margin-top: 30px;
+    }
+
+    .backup-box p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .btn-backup {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 10px 20px;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.3s;
+    }
+
+    .btn-backup:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
     footer {
       text-align: center;
       padding: 40px 20px;
@@ -507,6 +541,12 @@
       <div class="admin-box">
         <h2>Registro de Trabajos</h2>
         <div class="admin-albums-list" id="adminAlbumsList"></div>
+
+        <!-- HERRAMIENTA DE EXPORTACIÓN PARA GITHUB -->
+        <div class="backup-box">
+          <p><strong>💡 Para que los cambios queden fijos en todos los dispositivos:</strong><br>Cada vez que crees o elimines álbumes, haz clic aquí para descargar el respaldo actualizado y súbelo a GitHub.</p>
+          <button class="btn-backup" onclick="descargarRespaldoCodigo()">Descargar Código Actualizado</button>
+        </div>
       </div>
     </div>
   </section>
@@ -519,7 +559,8 @@
     const SECRET_PIN = "151124";
     let isAuthenticated = false;
 
-    let albums = JSON.parse(localStorage.getItem('fotografia_albums_v2')) || [
+    // Base de datos predeterminada inicial
+    const baseAlbumsDefault = [
       {
         id: 1,
         title: 'Romance Urbano',
@@ -538,6 +579,9 @@
         ]
       }
     ];
+
+    // Cargamos desde localStorage o inicializamos con la base por defecto
+    let albums = JSON.parse(localStorage.getItem('fotografia_albums_v3')) || baseAlbumsDefault;
 
     let isAdminMode = false;
     let currentAlbumId = null;
@@ -603,7 +647,6 @@
       renderAdminList();
     }
 
-    // Funciones del Visor de Pantalla Completa (Lightbox)
     function abrirLightbox(url) {
       const lightbox = document.getElementById('lightbox');
       const lightboxImg = document.getElementById('lightboxImg');
@@ -679,7 +722,7 @@
         photo.userLiked = false;
       }
 
-      localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
+      localStorage.setItem('fotografia_albums_v3', JSON.stringify(albums));
       renderApp();
     }
 
@@ -763,7 +806,7 @@
               };
 
               albums.unshift(nuevoAlbum);
-              localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
+              localStorage.setItem('fotografia_albums_v3', JSON.stringify(albums));
 
               alert(`¡Álbum "${title}" creado con ${files.length} fotos!`);
               document.getElementById('uploadForm').reset();
@@ -779,9 +822,29 @@
     function eliminarAlbumCompleto(id) {
       if (confirm('¿Estás segura de que deseas eliminar este álbum completo y todas sus fotos?')) {
         albums = albums.filter(a => a.id !== id);
-        localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
+        localStorage.setItem('fotografia_albums_v3', JSON.stringify(albums));
         renderApp();
       }
+    }
+
+    // FUNCIÓN MAGICA: Genera un archivo index.html actualizado con todos los álbumes actuales incrustados
+    function descargarRespaldoCodigo() {
+      const htmlCompleta = document.documentElement.outerHTML;
+      // Reemplazamos la variable baseAlbumsDefault en el texto con los álbumes actuales
+      const htmlActualizado = htmlCompleta.replace(
+        /const baseAlbumsDefault = \[[\s\S]*?\];/,
+        `const baseAlbumsDefault = ${JSON.stringify(albums, null, 2)};`
+      );
+
+      const blob = new Blob([htmlActualizado], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'index.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      alert('¡Código descargado! Súbelo a GitHub reemplazando el index.html actual para que se actualice en todos los dispositivos.');
     }
 
     renderApp();
