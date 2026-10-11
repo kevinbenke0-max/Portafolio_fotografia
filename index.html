@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Instantes | Portafolio de Fotografía</title>
+  <title>CAMY.INSTANTES | Portafolio de Fotografía</title>
   
   <!-- Tipografías editoriales y elegantes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -160,7 +160,13 @@
     }
 
     .album-card:hover img { transform: scale(1.05); }
+    .album-header-tag {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
     .album-category { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+    .album-lock-badge { font-size: 0.85rem; color: var(--accent); }
     .album-name { font-family: var(--font-title); font-size: 2rem; font-weight: 300; margin-top: 5px; }
     .album-count { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
 
@@ -225,8 +231,8 @@
       color: #000;
     }
 
-    /* --- VISOR DE PANTALLA COMPLETA (LIGHTBOX) --- */
-    #lightbox {
+    /* --- VISORES MODALES (LIGHTBOX Y SOLICITUD DE CLAVE) --- */
+    .modal-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.95);
@@ -245,7 +251,7 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
     }
 
-    .lightbox-close {
+    .modal-close {
       position: absolute;
       top: 25px;
       right: 30px;
@@ -258,8 +264,32 @@
       transition: color 0.3s;
     }
 
-    .lightbox-close:hover {
+    .modal-close:hover { color: var(--accent); }
+
+    /* Modal de contraseña de álbum privado */
+    .album-pass-box {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 6px;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+
+    .album-pass-box h3 {
+      font-family: var(--font-title);
+      font-size: 2rem;
+      margin-bottom: 10px;
       color: var(--accent);
+      font-weight: 300;
+    }
+
+    .album-pass-box p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 25px;
     }
 
     /* Botón flotante para volver atrás */
@@ -315,7 +345,7 @@
       font-weight: 300;
     }
 
-    .form-group { margin-bottom: 20px; }
+    .form-group { margin-bottom: 20px; text-align: left; }
 
     .form-group label {
       display: block;
@@ -433,7 +463,7 @@
     }
   </style>
 
-  <!-- SDKs de Firebase con tus datos configurados -->
+  <!-- SDKs de Firebase con tu configuración integrada -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -457,20 +487,21 @@
     let albums = [];
     let isAdminMode = false;
     let currentAlbumId = null;
+    let pendingAlbumId = null;
 
-    // Escuchar cambios en tiempo real desde la nube de Firebase
+    // Sincronizar en tiempo real desde la nube de Firebase
     const albumsRef = ref(db, 'albums');
     onValue(albumsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         albums = Object.values(data);
       } else {
-        // Datos por defecto si la base está vacía
         albums = [
           {
             id: 1,
             title: 'Romance Urbano',
             category: 'Bodas & Eventos',
+            password: '', // Álbum público de muestra
             photos: [
               { id: 101, url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80', likes: 12 },
               { id: 102, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80', likes: 8 }
@@ -505,14 +536,18 @@
 
         albums.forEach(album => {
           const coverImg = album.photos && album.photos.length > 0 ? album.photos[0].url : 'portada.jpg';
-          
+          const isPrivate = album.password && album.password.trim() !== '';
+
           const card = document.createElement('div');
           card.className = 'album-card';
-          card.onclick = () => abrirAlbum(album.id);
+          card.onclick = () => intentarAbrirAlbum(album.id);
           card.innerHTML = `
             <img src="${coverImg}" alt="${album.title}">
             <div class="album-overlay">
-              <span class="album-category">${album.category}</span>
+              <div class="album-header-tag">
+                <span class="album-category">${album.category}</span>
+                ${isPrivate ? '<span class="album-lock-badge" title="Álbum Privado">🔒 Privado</span>' : ''}
+              </div>
               <h3 class="album-name">${album.title}</h3>
               <p class="album-count">${album.photos ? album.photos.length : 0} fotografía${album.photos && album.photos.length !== 1 ? 's' : ''}</p>
             </div>
@@ -550,6 +585,52 @@
       }
 
       renderAdminList();
+    }
+
+    function intentarAbrirAlbum(id) {
+      const album = albums.find(a => a.id === id);
+      if (!album) return;
+
+      // Si tiene clave y no es la fotógrafa en panel admin
+      if (album.password && album.password.trim() !== '') {
+        pendingAlbumId = id;
+        document.getElementById('clientPassInput').value = '';
+        document.getElementById('clientPassModal').style.display = 'flex';
+      } else {
+        abrirAlbum(id);
+      }
+    }
+
+    window.validarClaveCliente = function(event) {
+      event.preventDefault();
+      const inputPass = document.getElementById('clientPassInput').value;
+      const album = albums.find(a => a.id === pendingAlbumId);
+
+      if (album && inputPass === album.password) {
+        document.getElementById('clientPassModal').style.display = 'none';
+        abrirAlbum(pendingAlbumId);
+        pendingAlbumId = null;
+      } else {
+        alert('Contraseña del álbum incorrecta. Solicítala a la fotógrafa.');
+        document.getElementById('clientPassInput').value = '';
+      }
+    }
+
+    window.cerrarPassModal = function() {
+      document.getElementById('clientPassModal').style.display = 'none';
+      pendingAlbumId = null;
+    }
+
+    function abrirAlbum(id) {
+      currentAlbumId = id;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      renderApp();
+    }
+
+    window.cerrarAlbum = function() {
+      currentAlbumId = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      renderApp();
     }
 
     window.abrirLightbox = function(url) {
@@ -591,27 +672,16 @@
       albums.forEach(album => {
         const item = document.createElement('div');
         item.className = 'admin-album-item';
+        const isPrivate = album.password && album.password.trim() !== '';
         item.innerHTML = `
           <div class="admin-album-info">
-            <h4>${album.title}</h4>
-            <p>${album.category} — ${album.photos ? album.photos.length : 0} fotos</p>
+            <h4>${album.title} ${isPrivate ? '🔒' : ''}</h4>
+            <p>${album.category} — ${album.photos ? album.photos.length : 0} fotos ${isPrivate ? `(Clave: ${album.password})` : '(Público)'}</p>
           </div>
           <button class="btn-delete-album" onclick="window.eliminarAlbumCompleto(${album.id})">Eliminar Álbum</button>
         `;
         adminListContainer.appendChild(item);
       });
-    }
-
-    function abrirAlbum(id) {
-      currentAlbumId = id;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      renderApp();
-    }
-
-    window.cerrarAlbum = function() {
-      currentAlbumId = null;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      renderApp();
     }
 
     window.darLike = function(albumId, photoId) {
@@ -681,6 +751,7 @@
       event.preventDefault();
       const title = document.getElementById('albumTitle').value;
       const category = document.getElementById('albumCategory').value;
+      const albumPassword = document.getElementById('albumPassword').value;
       const fileInput = document.getElementById('albumImageFiles');
 
       if (fileInput.files && fileInput.files.length > 0) {
@@ -705,13 +776,14 @@
                 id: Date.now(),
                 title,
                 category,
+                password: albumPassword.trim(),
                 photos: photosArray
               };
 
               albums.unshift(nuevoAlbum);
               guardarEnNube();
 
-              alert(`¡Álbum "${title}" creado y sincronizado en la nube con ${files.length} fotos!`);
+              alert(`¡Álbum "${title}" creado exitosamente!`);
               document.getElementById('uploadForm').reset();
             }
           }
@@ -739,9 +811,24 @@
     </div>
   </nav>
 
+  <!-- Modal Contraseña del Cliente para Álbumes Privados -->
+  <div id="clientPassModal" class="modal-overlay">
+    <div class="album-pass-box">
+      <button class="modal-close" style="top: 15px; right: 20px;" onclick="window.cerrarPassModal()">&times;</button>
+      <h3>Álbum Privado 🔒</h3>
+      <p>Ingresa la clave proporcionada por la fotógrafa para ver esta colección.</p>
+      <form onsubmit="window.validarClaveCliente(event)">
+        <div class="form-group">
+          <input type="password" id="clientPassInput" placeholder="Clave del álbum..." required>
+        </div>
+        <button type="submit" class="btn-submit">Ingresar</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Visor de Pantalla Completa (Lightbox) -->
-  <div id="lightbox" onclick="window.cerrarLightbox()">
-    <button class="lightbox-close" onclick="window.cerrarLightbox()">&times;</button>
+  <div id="lightbox" class="modal-overlay" onclick="window.cerrarLightbox()">
+    <button class="modal-close" onclick="window.cerrarLightbox()">&times;</button>
     <img id="lightboxImg" src="" alt="Vista ampliada">
   </div>
 
@@ -790,6 +877,10 @@
           <div class="form-group">
             <label>Categoría</label>
             <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Moda" required>
+          </div>
+          <div class="form-group">
+            <label>Contraseña del Álbum (Opcional - Para uso privado del cliente)</label>
+            <input type="text" id="albumPassword" placeholder="Ej: boda123 (Dejar en blanco si es público)">
           </div>
           <div class="form-group">
             <label>Seleccionar Fotos (Puedes marcar varias de golpe)</label>
