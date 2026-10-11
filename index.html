@@ -112,7 +112,7 @@
     }
     .btn-hero:hover { background: var(--accent); color: #000; }
 
-    /* --- SECCIONES Y ÁLBUMES --- */
+    /* --- SECCIONES Y CONTENEDORES --- */
     .section-title {
       text-align: center;
       font-family: var(--font-title);
@@ -122,7 +122,7 @@
       margin: 80px 0 40px;
     }
 
-    .albums-grid {
+    .albums-grid, .photos-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 30px;
@@ -131,6 +131,7 @@
       margin: 0 auto;
     }
 
+    /* Tarjetas de Álbum */
     .album-card {
       position: relative;
       height: 450px;
@@ -138,6 +139,7 @@
       border-radius: 4px;
       background: var(--card-bg);
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      cursor: pointer;
     }
 
     .album-card img {
@@ -160,6 +162,81 @@
     .album-card:hover img { transform: scale(1.05); }
     .album-category { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
     .album-name { font-family: var(--font-title); font-size: 2rem; font-weight: 300; margin-top: 5px; }
+    .album-count { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
+
+    /* Tarjetas de Fotos Individuales (Dentro del Álbum) */
+    .photo-card {
+      position: relative;
+      height: 400px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--card-bg);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-actions {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      left: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px);
+      padding: 10px 15px;
+      border-radius: 4px;
+    }
+
+    .btn-action {
+      background: none;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 3px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+
+    .btn-action:hover, .btn-action.liked {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-download {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      font-weight: 500;
+    }
+
+    .btn-download:hover {
+      background: #b8972b;
+      color: #000;
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin: 40px 50px 0;
+      font-family: var(--font-body);
+    }
 
     .btn-delete {
       position: absolute;
@@ -257,12 +334,14 @@
       font-size: 0.8rem;
       color: var(--text-muted);
       letter-spacing: 1px;
+      margin-top: 60px;
     }
 
     @media (max-width: 768px) {
       nav { padding: 20px; }
       .hero-title { font-size: 2.8rem; }
-      .albums-grid { padding: 0 20px 80px; }
+      .albums-grid, .photos-grid { padding: 0 20px 80px; }
+      .btn-back { margin: 30px 20px 0; }
     }
   </style>
 </head>
@@ -277,9 +356,9 @@
     </div>
   </nav>
 
-  <!-- Vista Pública (Portafolio) -->
+  <!-- Vista Pública (Portafolio principal con Álbumes) -->
   <div id="public-view">
-    <header class="hero">
+    <header class="hero" id="heroSection">
       <div class="hero-content">
         <p class="hero-subtitle">Estudio de Fotografía</p>
         <h1 class="hero-title">Capturando la elegancia de tus recuerdos</h1>
@@ -288,9 +367,9 @@
     </header>
 
     <section id="portadas">
-      <h2 class="section-title">Colecciones Destacadas</h2>
-      <div class="albums-grid" id="albumsContainer">
-        <!-- Los álbumes se renderizan aquí dinámicamente -->
+      <div id="dynamicHeader"></div>
+      <div id="mainContentContainer">
+        <!-- Aquí se cargan dinámicamente o los álbumes o las fotos del álbum seleccionado -->
       </div>
     </section>
   </div>
@@ -299,20 +378,20 @@
   <section id="admin-panel">
     <div class="admin-box">
       <h2>Gestión de Álbumes</h2>
-      <form id="uploadForm" onsubmit="agregarAlbum(event)">
+      <form id="uploadForm" onsubmit="crearAlbum(event)">
         <div class="form-group">
-          <label>Título Base del Álbum / Sesión</label>
-          <input type="text" id="albumTitle" placeholder="Ej: Sesión Otoño" required>
+          <label>Título del Álbum / Sesión</label>
+          <input type="text" id="albumTitle" placeholder="Ej: Boda Valentina & Lucas" required>
         </div>
         <div class="form-group">
           <label>Categoría</label>
-          <input type="text" id="albumCategory" placeholder="Ej: Retratos, Bodas, Editorial" required>
+          <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Moda" required>
         </div>
         <div class="form-group">
-          <label>Seleccionar Fotos (¡Puedes elegir Varias a la vez!)</label>
-          <input type="file" id="albumImageFile" accept="image/*" multiple required>
+          <label>Seleccionar Fotos (Puedes marcar varias de golpe)</label>
+          <input type="file" id="albumImageFiles" accept="image/*" multiple required>
         </div>
-        <button type="submit" class="btn-submit">Publicar Álbum(es)</button>
+        <button type="submit" class="btn-submit">Crear Álbum Completo</button>
       </form>
     </div>
   </section>
@@ -322,36 +401,137 @@
   </footer>
 
   <script>
-    // Base de datos inicial por defecto
-    let albums = JSON.parse(localStorage.getItem('fotografia_albums')) || [
-      { id: 1, title: 'Romance Urbano', category: 'Bodas & Eventos', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80' },
-      { id: 2, title: 'Luz Studio', category: 'Retratos', image: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=800&q=80' },
-      { id: 3, title: 'Alta Costura', category: 'Editorial', image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=800&q=80' }
+    // Base de datos inicial de álbumes con sus fotos y likes
+    let albums = JSON.parse(localStorage.getItem('fotografia_albums_v2')) || [
+      {
+        id: 1,
+        title: 'Romance Urbano',
+        category: 'Bodas & Eventos',
+        photos: [
+          { id: 101, url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80', likes: 12 },
+          { id: 102, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80', likes: 8 }
+        ]
+      },
+      {
+        id: 2,
+        title: 'Luz Studio',
+        category: 'Retratos',
+        photos: [
+          { id: 201, url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=1000&q=80', likes: 25 }
+        ]
+      }
     ];
 
     let isAdminMode = false;
+    let currentAlbumId = null; // null si estamos en la vista de carpetas
 
-    // Renderizar los álbumes en la pantalla
-    function renderAlbums() {
-      const container = document.getElementById('albumsContainer');
+    // Renderizar la vista actual (Álbumes o detalle de Fotos)
+    function renderApp() {
+      const container = document.getElementById('mainContentContainer');
+      const headerContainer = document.getElementById('dynamicHeader');
+      const heroSection = document.getElementById('heroSection');
+
       container.innerHTML = '';
 
-      albums.forEach(album => {
-        const card = document.createElement('div');
-        card.className = 'album-card';
-        card.innerHTML = `
-          <img src="${album.image}" alt="${album.title}">
-          <div class="album-overlay">
-            <span class="album-category">${album.category}</span>
-            <h3 class="album-name">${album.title}</h3>
-          </div>
-          <button class="btn-delete" style="display: ${isAdminMode ? 'block' : 'none'}" onclick="eliminarAlbum(${album.id})">Eliminar</button>
+      if (currentAlbumId === null) {
+        // --- VISTA 1: LISTA DE ÁLBUMES (CARPETAS) ---
+        heroSection.style.display = 'flex';
+        headerContainer.innerHTML = '<h2 class="section-title">Colecciones Destacadas</h2>';
+        container.className = 'albums-grid';
+
+        albums.forEach(album => {
+          const coverImg = album.photos.length > 0 ? album.photos[0].url : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80';
+          
+          const card = document.createElement('div');
+          card.className = 'album-card';
+          card.onclick = () => abrirAlbum(album.id);
+          card.innerHTML = `
+            <img src="${coverImg}" alt="${album.title}">
+            <div class="album-overlay">
+              <span class="album-category">${album.category}</span>
+              <h3 class="album-name">${album.title}</h3>
+              <p class="album-count">${album.photos.length} fotografía${album.photos.length !== 1 ? 's' : ''}</p>
+            </div>
+            <button class="btn-delete" style="display: ${isAdminMode ? 'block' : 'none'}" onclick="event.stopPropagation(); eliminarAlbum(${album.id})">Eliminar</button>
+          `;
+          container.appendChild(card);
+        });
+
+      } else {
+        // --- VISTA 2: DENTRO DE UN ÁLBUM (FOTOS EXTENDIDAS) ---
+        heroSection.style.display = 'none';
+        const album = albums.find(a => a.id === currentAlbumId);
+        if (!album) return;
+
+        headerContainer.innerHTML = `
+          <button class="btn-back" onclick="cerrarAlbum()">← Volver a Colecciones</button>
+          <h2 class="section-title" style="margin-top: 20px;">${album.title}</h2>
         `;
-        container.appendChild(card);
-      });
+        container.className = 'photos-grid';
+
+        album.photos.forEach(photo => {
+          const pCard = document.createElement('div');
+          pCard.className = 'photo-card';
+          pCard.innerHTML = `
+            <img src="${photo.url}" alt="Foto de sesión">
+            <div class="photo-actions">
+              <button class="btn-action ${photo.userLiked ? 'liked' : ''}" onclick="darLike(${album.id}, ${photo.id})">
+                ♥ ${photo.likes}
+              </button>
+              <button class="btn-action btn-download" onclick="descargarFoto('${photo.url}')">
+                Descargar
+              </button>
+            </div>
+            <button class="btn-delete" style="display: ${isAdminMode ? 'block' : 'none'}" onclick="eliminarFoto(${album.id}, ${photo.id})">Eliminar</button>
+          `;
+          container.appendChild(pCard);
+        });
+      }
     }
 
-    // Alternar entre modo web pública y panel de administración
+    // Entrar a un álbum
+    function abrirAlbum(id) {
+      currentAlbumId = id;
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+      renderApp();
+    }
+
+    // Salir del álbum
+    function cerrarAlbum() {
+      currentAlbumId = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      renderApp();
+    }
+
+    // Dar "Like" con contador
+    function darLike(albumId, photoId) {
+      const album = albums.find(a => a.id === albumId);
+      const photo = album.photos.find(p => p.id === photoId);
+
+      if (!photo.userLiked) {
+        photo.likes++;
+        photo.userLiked = true;
+      } else {
+        photo.likes--;
+        photo.userLiked = false;
+      }
+
+      localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
+      renderApp();
+    }
+
+    // Descargar foto directamente
+    function descargarFoto(url) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'foto_recuerdo.jpg';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Alternar Panel Admin
     function toggleAdminPanel() {
       isAdminMode = !isAdminMode;
       const publicView = document.getElementById('public-view');
@@ -369,47 +549,56 @@
         publicView.style.display = 'block';
         adminBtn.textContent = 'Panel Admin';
         linkColecciones.style.display = 'inline';
-        renderAlbums();
+        currentAlbumId = null;
+        renderApp();
       }
-      renderAlbums();
+      renderApp();
     }
 
     function showPublicView() {
       if (isAdminMode) toggleAdminPanel();
+      currentAlbumId = null;
+      renderApp();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Agregar múltiples álbumes a la vez desde las fotos seleccionadas
-    function agregarAlbum(event) {
+    // Crear un nuevo álbum agrupando todas las fotos seleccionadas
+    function crearAlbum(event) {
       event.preventDefault();
-      const titleBase = document.getElementById('albumTitle').value;
+      const title = document.getElementById('albumTitle').value;
       const category = document.getElementById('albumCategory').value;
-      const fileInput = document.getElementById('albumImageFile');
+      const fileInput = document.getElementById('albumImageFiles');
 
       if (fileInput.files && fileInput.files.length > 0) {
         const files = Array.from(fileInput.files);
+        let photosArray = [];
         let processedCount = 0;
 
         files.forEach((file, index) => {
           const reader = new FileReader();
           
           reader.onload = function(e) {
-            const albumTitle = files.length > 1 ? `${titleBase} (${index + 1})` : titleBase;
-            
-            const nuevoAlbum = {
+            photosArray.push({
               id: Date.now() + index,
-              title: albumTitle,
-              category,
-              image: e.target.result
-            };
-
-            albums.unshift(nuevoAlbum);
+              url: e.target.result,
+              likes: 0,
+              userLiked: false
+            });
             processedCount++;
 
-            // Cuando procese todas las imágenes, guarda y actualiza la vista
+            // Cuando se carguen todas las fotos seleccionadas, crea la carpeta
             if (processedCount === files.length) {
-              localStorage.setItem('fotografia_albums', JSON.stringify(albums));
-              alert(`¡Se publicaron ${files.length} álbum(es) exitosamente!`);
+              const nuevoAlbum = {
+                id: Date.now(),
+                title,
+                category,
+                photos: photosArray
+              };
+
+              albums.unshift(nuevoAlbum);
+              localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
+
+              alert(`¡Álbum "${title}" creado con ${files.length} fotos!`);
               document.getElementById('uploadForm').reset();
               toggleAdminPanel();
             }
@@ -420,17 +609,34 @@
       }
     }
 
-    // Eliminar álbum
+    // Eliminar álbum entero
     function eliminarAlbum(id) {
-      if (confirm('¿Estás segura de que deseas eliminar este álbum?')) {
-        albums = albums.filter(album => album.id !== id);
-        localStorage.setItem('fotografia_albums', JSON.stringify(albums));
-        renderAlbums();
+      if (confirm('¿Estás segura de eliminar este álbum completo?')) {
+        albums = albums.filter(a => a.id !== id);
+        localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
+        renderApp();
+      }
+    }
+
+    // Eliminar una foto específica de un álbum
+    function eliminarFoto(albumId, photoId) {
+      if (confirm('¿Eliminar esta fotografía?')) {
+        const album = albums.find(a => a.id === albumId);
+        album.photos = album.photos.filter(p => p.id !== photoId);
+        
+        // Si el álbum se queda sin fotos, también lo removemos
+        if (album.photos.length === 0) {
+          albums = albums.filter(a => a.id !== albumId);
+          currentAlbumId = null;
+        }
+
+        localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
+        renderApp();
       }
     }
 
     // Carga inicial
-    renderAlbums();
+    renderApp();
   </script>
 </body>
 </html>
