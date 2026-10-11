@@ -253,7 +253,7 @@
       color: #000;
     }
 
-    /* --- PANEL DE ADMINISTRACIÓN --- */
+    /* --- PANEL DE ADMINISTRACIÓN Y ACCESO --- */
     #admin-panel {
       display: none;
       padding: 130px 20px 80px;
@@ -327,7 +327,7 @@
 
     .btn-submit:hover { background: #b8972b; }
 
-    /* Lista de gestión de álbumes existentes */
+    /* Lista de gestión de álbumes */
     .admin-albums-list {
       display: flex;
       flex-direction: column;
@@ -428,34 +428,48 @@
     </section>
   </div>
 
-  <!-- Panel de Administración con Registro de Álbumes -->
+  <!-- Panel de Administración -->
   <section id="admin-panel">
-    <div class="admin-box">
-      <h2>Gestión de Álbumes</h2>
-      <form id="uploadForm" onsubmit="crearAlbum(event)">
+    
+    <!-- TARJETA DE LOGIN / ACCESO CON CONTRASEÑA -->
+    <div class="admin-box" id="authBox">
+      <h2>Acceso Administrador</h2>
+      <form onsubmit="validarContrasena(event)">
         <div class="form-group">
-          <label>Título del Álbum / Sesión</label>
-          <input type="text" id="albumTitle" placeholder="Ej: Boda Valentina & Lucas" required>
+          <label>Ingrese la contraseña de seguridad</label>
+          <input type="password" id="adminPassword" placeholder="••••••••" required>
         </div>
-        <div class="form-group">
-          <label>Categoría</label>
-          <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Moda" required>
-        </div>
-        <div class="form-group">
-          <label>Seleccionar Fotos (Puedes marcar varias de golpe)</label>
-          <input type="file" id="albumImageFiles" accept="image/*" multiple required>
-        </div>
-        <button type="submit" class="btn-submit">Crear Álbum Completo</button>
+        <button type="submit" class="btn-submit">Ingresar al Panel</button>
       </form>
     </div>
 
-    <!-- SECCIÓN DE REGISTRO DE TRABAJOS / ÁLBUMES -->
-    <div class="admin-box">
-      <h2>Registro de Trabajos</h2>
-      <div class="admin-albums-list" id="adminAlbumsList">
-        <!-- Los álbumes registrados se listan aquí automáticamente -->
+    <!-- CONTENIDO PROTEGIDO DEL PANEL (Oculto por defecto hasta validar clave) -->
+    <div id="protectedAdminContent" style="display: none;">
+      <div class="admin-box">
+        <h2>Gestión de Álbumes</h2>
+        <form id="uploadForm" onsubmit="crearAlbum(event)">
+          <div class="form-group">
+            <label>Título del Álbum / Sesión</label>
+            <input type="text" id="albumTitle" placeholder="Ej: Boda Valentina & Lucas" required>
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Moda" required>
+          </div>
+          <div class="form-group">
+            <label>Seleccionar Fotos (Puedes marcar varias de golpe)</label>
+            <input type="file" id="albumImageFiles" accept="image/*" multiple required>
+          </div>
+          <button type="submit" class="btn-submit">Crear Álbum Completo</button>
+        </form>
+      </div>
+
+      <div class="admin-box">
+        <h2>Registro de Trabajos</h2>
+        <div class="admin-albums-list" id="adminAlbumsList"></div>
       </div>
     </div>
+
   </section>
 
   <footer>
@@ -463,6 +477,9 @@
   </footer>
 
   <script>
+    const SECRET_PIN = "151124"; // Clave de acceso configurable
+    let isAuthenticated = false;
+
     let albums = JSON.parse(localStorage.getItem('fotografia_albums_v2')) || [
       {
         id: 1,
@@ -544,13 +561,28 @@
         });
       }
 
-      // Renderizar también la lista de administración
       renderAdminList();
     }
 
-    // Renderizar la lista de trabajos en el panel admin
+    // Validar contraseña de administración
+    function validarContrasena(event) {
+      event.preventDefault();
+      const inputPass = document.getElementById('adminPassword').value;
+
+      if (inputPass === SECRET_PIN) {
+        isAuthenticated = true;
+        document.getElementById('authBox').style.display = 'none';
+        document.getElementById('protectedAdminContent').style.display = 'block';
+        document.getElementById('adminPassword').value = '';
+      } else {
+        alert('Contraseña incorrecta. Acceso denegado.');
+        document.getElementById('adminPassword').value = '';
+      }
+    }
+
     function renderAdminList() {
       const adminListContainer = document.getElementById('adminAlbumsList');
+      if (!adminListContainer) return;
       adminListContainer.innerHTML = '';
 
       if (albums.length === 0) {
@@ -624,7 +656,15 @@
         adminBtn.textContent = 'Ver Sitio Web';
         linkColecciones.style.display = 'none';
         floatingBtn.style.display = 'none';
+
+        // Si no está autenticado, solicita la clave primero
+        if (!isAuthenticated) {
+          document.getElementById('authBox').style.display = 'block';
+          document.getElementById('protectedAdminContent').style.display = 'none';
+        }
       } else {
+        // Cierra sesión al salir
+        isAuthenticated = false;
         adminPanel.style.display = 'none';
         publicView.style.display = 'block';
         adminBtn.textContent = 'Panel Admin';
@@ -687,7 +727,6 @@
       }
     }
 
-    // Eliminar álbum completo desde el panel de administración
     function eliminarAlbumCompleto(id) {
       if (confirm('¿Estás segura de que deseas eliminar este álbum completo y todas sus fotos?')) {
         albums = albums.filter(a => a.id !== id);
