@@ -413,40 +413,6 @@
       color: #fff;
     }
 
-    /* Caja de respaldo para exportar el código actualizado */
-    .backup-box {
-      background: #111;
-      border: 1px dashed var(--accent);
-      padding: 20px;
-      border-radius: 4px;
-      margin-top: 30px;
-    }
-
-    .backup-box p {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      line-height: 1.5;
-    }
-
-    .btn-backup {
-      background: transparent;
-      border: 1px solid var(--accent);
-      color: var(--accent);
-      padding: 10px 20px;
-      font-size: 0.75rem;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 3px;
-      transition: all 0.3s;
-    }
-
-    .btn-backup:hover {
-      background: var(--accent);
-      color: #000;
-    }
-
     footer {
       text-align: center;
       padding: 40px 20px;
@@ -466,132 +432,69 @@
       .btn-delete-album { width: 100%; text-align: center; }
     }
   </style>
-</head>
-<body>
 
-  <!-- Navegación -->
-  <nav>
-    <div class="logo" onclick="showPublicView()">Instantes</div>
-    <div class="nav-links">
-      <a href="#portadas" id="linkColecciones">Colecciones</a>
-      <button class="btn-admin-nav" onclick="toggleAdminPanel()" id="adminBtnText">Panel Admin</button>
-    </div>
-  </nav>
+  <!-- SDKs de Firebase con tus datos configurados -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  <!-- Visor de Pantalla Completa (Lightbox) -->
-  <div id="lightbox" onclick="cerrarLightbox()">
-    <button class="lightbox-close" onclick="cerrarLightbox()">&times;</button>
-    <img id="lightboxImg" src="" alt="Vista ampliada">
-  </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDKBQjqOGuPiGb_CW8HMMzRsa-554VqdQ",
+      authDomain: "instantes-fotos.firebaseapp.com",
+      databaseURL: "https://instantes-fotos-default-rtdb.firebaseio.com",
+      projectId: "instantes-fotos",
+      storageBucket: "instantes-fotos.firebasestorage.app",
+      messagingSenderId: "20479771835",
+      appId: "1:20479771835:web:18abeed98e46305e8b559e",
+      measurementId: "G-SHJMYKPYF5"
+    };
 
-  <!-- Botón Flotante para Volver -->
-  <button id="floatingBackBtn" class="btn-back-floating" style="display: none;" onclick="cerrarAlbum()">
-    ← Volver a Colecciones
-  </button>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  <!-- Vista Pública -->
-  <div id="public-view">
-    <header class="hero" id="heroSection">
-      <div class="hero-content">
-        <p class="hero-subtitle">Estudio de Fotografía</p>
-        <h1 class="hero-title">Capturando la elegancia de tus recuerdos</h1>
-        <a href="#portadas" class="btn-hero">Ver Colecciones</a>
-      </div>
-    </header>
-
-    <section id="portadas">
-      <div id="dynamicHeader"></div>
-      <div id="mainContentContainer"></div>
-    </section>
-  </div>
-
-  <!-- Panel de Administración -->
-  <section id="admin-panel">
-    <div class="admin-box" id="authBox">
-      <h2>Acceso Administrador</h2>
-      <form onsubmit="validarContrasena(event)">
-        <div class="form-group">
-          <label>Ingrese la contraseña de seguridad</label>
-          <input type="password" id="adminPassword" placeholder="••••••••" required>
-        </div>
-        <button type="submit" class="btn-submit">Ingresar al Panel</button>
-      </form>
-    </div>
-
-    <div id="protectedAdminContent" style="display: none;">
-      <div class="admin-box">
-        <h2>Gestión de Álbumes</h2>
-        <form id="uploadForm" onsubmit="crearAlbum(event)">
-          <div class="form-group">
-            <label>Título del Álbum / Sesión</label>
-            <input type="text" id="albumTitle" placeholder="Ej: Boda Valentina & Lucas" required>
-          </div>
-          <div class="form-group">
-            <label>Categoría</label>
-            <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Moda" required>
-          </div>
-          <div class="form-group">
-            <label>Seleccionar Fotos (Puedes marcar varias de golpe)</label>
-            <input type="file" id="albumImageFiles" accept="image/*" multiple required>
-          </div>
-          <button type="submit" class="btn-submit">Crear Álbum Completo</button>
-        </form>
-      </div>
-
-      <div class="admin-box">
-        <h2>Registro de Trabajos</h2>
-        <div class="admin-albums-list" id="adminAlbumsList"></div>
-
-        <!-- HERRAMIENTA DE EXPORTACIÓN PARA GITHUB -->
-        <div class="backup-box">
-          <p><strong>💡 Para que los cambios queden fijos en todos los dispositivos:</strong><br>Cada vez que crees o elimines álbumes, haz clic aquí para descargar el respaldo actualizado y súbelo a GitHub.</p>
-          <button class="btn-backup" onclick="descargarRespaldoCodigo()">Descargar Código Actualizado</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <p>© 2026 Fotografía Editorial. Todos los derechos reservados.</p>
-  </footer>
-
-  <script>
     const SECRET_PIN = "151124";
     let isAuthenticated = false;
-
-    // Base de datos predeterminada inicial
-    const baseAlbumsDefault = [
-      {
-        id: 1,
-        title: 'Romance Urbano',
-        category: 'Bodas & Eventos',
-        photos: [
-          { id: 101, url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80', likes: 12 },
-          { id: 102, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80', likes: 8 }
-        ]
-      },
-      {
-        id: 2,
-        title: 'Luz Studio',
-        category: 'Retratos',
-        photos: [
-          { id: 201, url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=1000&q=80', likes: 25 }
-        ]
-      }
-    ];
-
-    // Cargamos desde localStorage o inicializamos con la base por defecto
-    let albums = JSON.parse(localStorage.getItem('fotografia_albums_v3')) || baseAlbumsDefault;
-
+    let albums = [];
     let isAdminMode = false;
     let currentAlbumId = null;
 
-    function renderApp() {
+    // Escuchar cambios en tiempo real desde la nube de Firebase
+    const albumsRef = ref(db, 'albums');
+    onValue(albumsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        albums = Object.values(data);
+      } else {
+        // Datos por defecto si la base está vacía
+        albums = [
+          {
+            id: 1,
+            title: 'Romance Urbano',
+            category: 'Bodas & Eventos',
+            photos: [
+              { id: 101, url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80', likes: 12 },
+              { id: 102, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80', likes: 8 }
+            ]
+          }
+        ];
+        guardarEnNube();
+      }
+      renderApp();
+    });
+
+    function guardarEnNube() {
+      let albumsObj = {};
+      albums.forEach(a => { albumsObj[a.id] = a; });
+      set(ref(db, 'albums'), albumsObj);
+    }
+
+    window.renderApp = function() {
       const container = document.getElementById('mainContentContainer');
       const headerContainer = document.getElementById('dynamicHeader');
       const heroSection = document.getElementById('heroSection');
       const floatingBtn = document.getElementById('floatingBackBtn');
 
+      if(!container) return;
       container.innerHTML = '';
 
       if (currentAlbumId === null) {
@@ -601,7 +504,7 @@
         floatingBtn.style.display = 'none';
 
         albums.forEach(album => {
-          const coverImg = album.photos.length > 0 ? album.photos[0].url : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80';
+          const coverImg = album.photos && album.photos.length > 0 ? album.photos[0].url : 'portada.jpg';
           
           const card = document.createElement('div');
           card.className = 'album-card';
@@ -611,7 +514,7 @@
             <div class="album-overlay">
               <span class="album-category">${album.category}</span>
               <h3 class="album-name">${album.title}</h3>
-              <p class="album-count">${album.photos.length} fotografía${album.photos.length !== 1 ? 's' : ''}</p>
+              <p class="album-count">${album.photos ? album.photos.length : 0} fotografía${album.photos && album.photos.length !== 1 ? 's' : ''}</p>
             </div>
           `;
           container.appendChild(card);
@@ -626,40 +529,41 @@
         container.className = 'photos-grid';
         floatingBtn.style.display = 'flex';
 
-        album.photos.forEach(photo => {
-          const pCard = document.createElement('div');
-          pCard.className = 'photo-card';
-          pCard.innerHTML = `
-            <img src="${photo.url}" alt="Foto de sesión" onclick="abrirLightbox('${photo.url}')">
-            <div class="photo-actions">
-              <button class="btn-action ${photo.userLiked ? 'liked' : ''}" onclick="darLike(${album.id}, ${photo.id})">
-                ♥ ${photo.likes}
-              </button>
-              <button class="btn-action btn-download" onclick="descargarFoto('${photo.url}')">
-                Descargar
-              </button>
-            </div>
-          `;
-          container.appendChild(pCard);
-        });
+        if(album.photos) {
+          album.photos.forEach(photo => {
+            const pCard = document.createElement('div');
+            pCard.className = 'photo-card';
+            pCard.innerHTML = `
+              <img src="${photo.url}" alt="Foto de sesión" onclick="window.abrirLightbox('${photo.url}')">
+              <div class="photo-actions">
+                <button class="btn-action ${photo.userLiked ? 'liked' : ''}" onclick="window.darLike(${album.id}, ${photo.id})">
+                  ♥ ${photo.likes || 0}
+                </button>
+                <button class="btn-action btn-download" onclick="window.descargarFoto('${photo.url}')">
+                  Descargar
+                </button>
+              </div>
+            `;
+            container.appendChild(pCard);
+          });
+        }
       }
 
       renderAdminList();
     }
 
-    function abrirLightbox(url) {
+    window.abrirLightbox = function(url) {
       const lightbox = document.getElementById('lightbox');
       const lightboxImg = document.getElementById('lightboxImg');
       lightboxImg.src = url;
       lightbox.style.display = 'flex';
     }
 
-    function cerrarLightbox() {
-      const lightbox = document.getElementById('lightbox');
-      lightbox.style.display = 'none';
+    window.cerrarLightbox = function() {
+      document.getElementById('lightbox').style.display = 'none';
     }
 
-    function validarContrasena(event) {
+    window.validarContrasena = function(event) {
       event.preventDefault();
       const inputPass = document.getElementById('adminPassword').value;
 
@@ -690,9 +594,9 @@
         item.innerHTML = `
           <div class="admin-album-info">
             <h4>${album.title}</h4>
-            <p>${album.category} — ${album.photos.length} fotos</p>
+            <p>${album.category} — ${album.photos ? album.photos.length : 0} fotos</p>
           </div>
-          <button class="btn-delete-album" onclick="eliminarAlbumCompleto(${album.id})">Eliminar Álbum</button>
+          <button class="btn-delete-album" onclick="window.eliminarAlbumCompleto(${album.id})">Eliminar Álbum</button>
         `;
         adminListContainer.appendChild(item);
       });
@@ -704,29 +608,28 @@
       renderApp();
     }
 
-    function cerrarAlbum() {
+    window.cerrarAlbum = function() {
       currentAlbumId = null;
       window.scrollTo({ top: 0, behavior: 'smooth' });
       renderApp();
     }
 
-    function darLike(albumId, photoId) {
+    window.darLike = function(albumId, photoId) {
       const album = albums.find(a => a.id === albumId);
       const photo = album.photos.find(p => p.id === photoId);
 
       if (!photo.userLiked) {
-        photo.likes++;
+        photo.likes = (photo.likes || 0) + 1;
         photo.userLiked = true;
       } else {
-        photo.likes--;
+        photo.likes = Math.max(0, (photo.likes || 1) - 1);
         photo.userLiked = false;
       }
 
-      localStorage.setItem('fotografia_albums_v3', JSON.stringify(albums));
-      renderApp();
+      guardarEnNube();
     }
 
-    function descargarFoto(url) {
+    window.descargarFoto = function(url) {
       const a = document.createElement('a');
       a.href = url;
       a.download = 'foto_recuerdo.jpg';
@@ -736,7 +639,7 @@
       document.body.removeChild(a);
     }
 
-    function toggleAdminPanel() {
+    window.toggleAdminPanel = function() {
       isAdminMode = !isAdminMode;
       const publicView = document.getElementById('public-view');
       const adminPanel = document.getElementById('admin-panel');
@@ -767,14 +670,14 @@
       renderApp();
     }
 
-    function showPublicView() {
+    window.showPublicView = function() {
       if (isAdminMode) toggleAdminPanel();
       currentAlbumId = null;
       renderApp();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function crearAlbum(event) {
+    window.crearAlbum = function(event) {
       event.preventDefault();
       const title = document.getElementById('albumTitle').value;
       const category = document.getElementById('albumCategory').value;
@@ -806,48 +709,105 @@
               };
 
               albums.unshift(nuevoAlbum);
-              localStorage.setItem('fotografia_albums_v3', JSON.stringify(albums));
+              guardarEnNube();
 
-              alert(`¡Álbum "${title}" creado con ${files.length} fotos!`);
+              alert(`¡Álbum "${title}" creado y sincronizado en la nube con ${files.length} fotos!`);
               document.getElementById('uploadForm').reset();
-              renderApp();
             }
           }
-
           reader.readAsDataURL(file);
         });
       }
     }
 
-    function eliminarAlbumCompleto(id) {
-      if (confirm('¿Estás segura de que deseas eliminar este álbum completo y todas sus fotos?')) {
+    window.eliminarAlbumCompleto = function(id) {
+      if (confirm('¿Estás segura de que deseas eliminar este álbum de la nube?')) {
         albums = albums.filter(a => a.id !== id);
-        localStorage.setItem('fotografia_albums_v3', JSON.stringify(albums));
-        renderApp();
+        guardarEnNube();
       }
     }
-
-    // FUNCIÓN MAGICA: Genera un archivo index.html actualizado con todos los álbumes actuales incrustados
-    function descargarRespaldoCodigo() {
-      const htmlCompleta = document.documentElement.outerHTML;
-      // Reemplazamos la variable baseAlbumsDefault en el texto con los álbumes actuales
-      const htmlActualizado = htmlCompleta.replace(
-        /const baseAlbumsDefault = \[[\s\S]*?\];/,
-        `const baseAlbumsDefault = ${JSON.stringify(albums, null, 2)};`
-      );
-
-      const blob = new Blob([htmlActualizado], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'index.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      alert('¡Código descargado! Súbelo a GitHub reemplazando el index.html actual para que se actualice en todos los dispositivos.');
-    }
-
-    renderApp();
   </script>
+</head>
+<body>
+
+  <!-- Navegación -->
+  <nav>
+    <div class="logo" onclick="window.showPublicView()">Instantes</div>
+    <div class="nav-links">
+      <a href="#portadas" id="linkColecciones">Colecciones</a>
+      <button class="btn-admin-nav" onclick="window.toggleAdminPanel()" id="adminBtnText">Panel Admin</button>
+    </div>
+  </nav>
+
+  <!-- Visor de Pantalla Completa (Lightbox) -->
+  <div id="lightbox" onclick="window.cerrarLightbox()">
+    <button class="lightbox-close" onclick="window.cerrarLightbox()">&times;</button>
+    <img id="lightboxImg" src="" alt="Vista ampliada">
+  </div>
+
+  <!-- Botón Flotante para Volver -->
+  <button id="floatingBackBtn" class="btn-back-floating" style="display: none;" onclick="window.cerrarAlbum()">
+    ← Volver a Colecciones
+  </button>
+
+  <!-- Vista Pública -->
+  <div id="public-view">
+    <header class="hero" id="heroSection">
+      <div class="hero-content">
+        <p class="hero-subtitle">Estudio de Fotografía</p>
+        <h1 class="hero-title">Capturando la elegancia de tus recuerdos</h1>
+        <a href="#portadas" class="btn-hero">Ver Colecciones</a>
+      </div>
+    </header>
+
+    <section id="portadas">
+      <div id="dynamicHeader"></div>
+      <div id="mainContentContainer"></div>
+    </section>
+  </div>
+
+  <!-- Panel de Administración -->
+  <section id="admin-panel">
+    <div class="admin-box" id="authBox">
+      <h2>Acceso Administrador</h2>
+      <form onsubmit="window.validarContrasena(event)">
+        <div class="form-group">
+          <label>Ingrese la contraseña de seguridad</label>
+          <input type="password" id="adminPassword" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-submit">Ingresar al Panel</button>
+      </form>
+    </div>
+
+    <div id="protectedAdminContent" style="display: none;">
+      <div class="admin-box">
+        <h2>Gestión de Álbumes (Sincronizado)</h2>
+        <form id="uploadForm" onsubmit="window.crearAlbum(event)">
+          <div class="form-group">
+            <label>Título del Álbum / Sesión</label>
+            <input type="text" id="albumTitle" placeholder="Ej: Boda Valentina & Lucas" required>
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <input type="text" id="albumCategory" placeholder="Ej: Bodas, Retratos, Moda" required>
+          </div>
+          <div class="form-group">
+            <label>Seleccionar Fotos (Puedes marcar varias de golpe)</label>
+            <input type="file" id="albumImageFiles" accept="image/*" multiple required>
+          </div>
+          <button type="submit" class="btn-submit">Crear y Subir a la Nube</button>
+        </form>
+      </div>
+
+      <div class="admin-box">
+        <h2>Registro de Trabajos</h2>
+        <div class="admin-albums-list" id="adminAlbumsList"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Fotografía Editorial. Todos los derechos reservados.</p>
+  </footer>
 </body>
 </html>
