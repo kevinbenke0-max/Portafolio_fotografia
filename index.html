@@ -224,7 +224,7 @@
       color: #000;
     }
 
-    /* Botón flotante y superior para volver atrás */
+    /* Botón flotante para volver atrás */
     .btn-back-floating {
       position: fixed;
       bottom: 25px;
@@ -253,27 +253,11 @@
       color: #000;
     }
 
-    .btn-delete {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: rgba(231, 76, 60, 0.8);
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      font-size: 0.7rem;
-      letter-spacing: 1px;
-      cursor: pointer;
-      border-radius: 3px;
-      display: none;
-      text-transform: uppercase;
-    }
-
     /* --- PANEL DE ADMINISTRACIÓN --- */
     #admin-panel {
       display: none;
       padding: 130px 20px 80px;
-      max-width: 700px;
+      max-width: 800px;
       margin: 0 auto;
     }
 
@@ -282,6 +266,7 @@
       padding: 40px;
       border-radius: 6px;
       border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 40px;
     }
 
     .admin-box h2 {
@@ -342,6 +327,55 @@
 
     .btn-submit:hover { background: #b8972b; }
 
+    /* Lista de gestión de álbumes existentes */
+    .admin-albums-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .admin-album-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #111;
+      padding: 15px 20px;
+      border-radius: 4px;
+      border: 1px solid #222;
+    }
+
+    .admin-album-info h4 {
+      font-size: 1rem;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    .admin-album-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .btn-delete-album {
+      background: rgba(231, 76, 60, 0.2);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      padding: 8px 14px;
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 3px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+
+    .btn-delete-album:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
     footer {
       text-align: center;
       padding: 40px 20px;
@@ -357,6 +391,8 @@
       .hero-title { font-size: 2.8rem; }
       .albums-grid, .photos-grid { padding: 0 20px 80px; }
       .btn-back-floating { bottom: 20px; left: 20px; padding: 10px 18px; }
+      .admin-album-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .btn-delete-album { width: 100%; text-align: center; }
     }
   </style>
 </head>
@@ -371,7 +407,7 @@
     </div>
   </nav>
 
-  <!-- Botón Flotante para Volver (Visible solo dentro de un álbum) -->
+  <!-- Botón Flotante para Volver -->
   <button id="floatingBackBtn" class="btn-back-floating" style="display: none;" onclick="cerrarAlbum()">
     ← Volver a Colecciones
   </button>
@@ -392,7 +428,7 @@
     </section>
   </div>
 
-  <!-- Panel de Administración -->
+  <!-- Panel de Administración con Registro de Álbumes -->
   <section id="admin-panel">
     <div class="admin-box">
       <h2>Gestión de Álbumes</h2>
@@ -411,6 +447,14 @@
         </div>
         <button type="submit" class="btn-submit">Crear Álbum Completo</button>
       </form>
+    </div>
+
+    <!-- SECCIÓN DE REGISTRO DE TRABAJOS / ÁLBUMES -->
+    <div class="admin-box">
+      <h2>Registro de Trabajos</h2>
+      <div class="admin-albums-list" id="adminAlbumsList">
+        <!-- Los álbumes registrados se listan aquí automáticamente -->
+      </div>
     </div>
   </section>
 
@@ -451,11 +495,10 @@
       container.innerHTML = '';
 
       if (currentAlbumId === null) {
-        // Vista Principal: Muestra las carpetas de álbumes
         heroSection.style.display = 'flex';
         headerContainer.innerHTML = '<h2 class="section-title">Colecciones Destacadas</h2>';
         container.className = 'albums-grid';
-        floatingBtn.style.display = 'none'; // Oculta el botón flotante
+        floatingBtn.style.display = 'none';
 
         albums.forEach(album => {
           const coverImg = album.photos.length > 0 ? album.photos[0].url : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80';
@@ -470,20 +513,18 @@
               <h3 class="album-name">${album.title}</h3>
               <p class="album-count">${album.photos.length} fotografía${album.photos.length !== 1 ? 's' : ''}</p>
             </div>
-            <button class="btn-delete" style="display: ${isAdminMode ? 'block' : 'none'}" onclick="event.stopPropagation(); eliminarAlbum(${album.id})">Eliminar</button>
           `;
           container.appendChild(card);
         });
 
       } else {
-        // Vista Interna: Muestra las fotos del álbum y activa el botón flotante
         heroSection.style.display = 'none';
         const album = albums.find(a => a.id === currentAlbumId);
         if (!album) return;
 
         headerContainer.innerHTML = `<h2 class="section-title">${album.title}</h2>`;
         container.className = 'photos-grid';
-        floatingBtn.style.display = 'flex'; // Muestra el botón flotante en pantalla
+        floatingBtn.style.display = 'flex';
 
         album.photos.forEach(photo => {
           const pCard = document.createElement('div');
@@ -498,11 +539,37 @@
                 Descargar
               </button>
             </div>
-            <button class="btn-delete" style="display: ${isAdminMode ? 'block' : 'none'}" onclick="eliminarFoto(${album.id}, ${photo.id})">Eliminar</button>
           `;
           container.appendChild(pCard);
         });
       }
+
+      // Renderizar también la lista de administración
+      renderAdminList();
+    }
+
+    // Renderizar la lista de trabajos en el panel admin
+    function renderAdminList() {
+      const adminListContainer = document.getElementById('adminAlbumsList');
+      adminListContainer.innerHTML = '';
+
+      if (albums.length === 0) {
+        adminListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No hay álbumes creados todavía.</p>';
+        return;
+      }
+
+      albums.forEach(album => {
+        const item = document.createElement('div');
+        item.className = 'admin-album-item';
+        item.innerHTML = `
+          <div class="admin-album-info">
+            <h4>${album.title}</h4>
+            <p>${album.category} — ${album.photos.length} fotos</p>
+          </div>
+          <button class="btn-delete-album" onclick="eliminarAlbumCompleto(${album.id})">Eliminar Álbum</button>
+        `;
+        adminListContainer.appendChild(item);
+      });
     }
 
     function abrirAlbum(id) {
@@ -611,7 +678,7 @@
 
               alert(`¡Álbum "${title}" creado con ${files.length} fotos!`);
               document.getElementById('uploadForm').reset();
-              toggleAdminPanel();
+              renderApp();
             }
           }
 
@@ -620,24 +687,10 @@
       }
     }
 
-    function eliminarAlbum(id) {
-      if (confirm('¿Estás segura de eliminar este álbum completo?')) {
+    // Eliminar álbum completo desde el panel de administración
+    function eliminarAlbumCompleto(id) {
+      if (confirm('¿Estás segura de que deseas eliminar este álbum completo y todas sus fotos?')) {
         albums = albums.filter(a => a.id !== id);
-        localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
-        renderApp();
-      }
-    }
-
-    function eliminarFoto(albumId, photoId) {
-      if (confirm('¿Eliminar esta fotografía?')) {
-        const album = albums.find(a => a.id === albumId);
-        album.photos = album.photos.filter(p => p.id !== photoId);
-        
-        if (album.photos.length === 0) {
-          albums = albums.filter(a => a.id !== albumId);
-          currentAlbumId = null;
-        }
-
         localStorage.setItem('fotografia_albums_v2', JSON.stringify(albums));
         renderApp();
       }
