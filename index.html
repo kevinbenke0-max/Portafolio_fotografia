@@ -231,7 +231,7 @@
       color: #000;
     }
 
-    /* --- VISORES MODALES (LIGHTBOX Y SOLICITUD DE CLAVE) --- */
+    /* --- VISORES MODALES --- */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -266,16 +266,18 @@
 
     .modal-close:hover { color: var(--accent); }
 
-    /* Modal de contraseña de álbum privado */
+    /* Modal emergente */
     .album-pass-box {
       background: var(--card-bg);
       padding: 40px;
       border-radius: 6px;
       border: 1px solid rgba(212, 175, 55, 0.3);
-      max-width: 420px;
+      max-width: 500px;
       width: 100%;
       text-align: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .album-pass-box h3 {
@@ -290,6 +292,50 @@
       font-size: 0.8rem;
       color: var(--text-muted);
       margin-bottom: 25px;
+    }
+
+    /* Grilla para edición de imágenes */
+    .edit-photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 4px;
+    }
+
+    .edit-photo-item {
+      position: relative;
+      height: 90px;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .edit-photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .btn-delete-photo {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(231, 76, 60, 0.9);
+      color: #fff;
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     /* Botón flotante para volver atrás */
@@ -425,6 +471,29 @@
       margin-top: 3px;
     }
 
+    .admin-album-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-edit-album {
+      background: rgba(212, 175, 55, 0.2);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 8px 14px;
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 3px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+
+    .btn-edit-album:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
     .btn-delete-album {
       background: rgba(231, 76, 60, 0.2);
       color: var(--danger);
@@ -459,7 +528,8 @@
       .albums-grid, .photos-grid { padding: 0 20px 80px; }
       .btn-back-floating { bottom: 20px; left: 20px; padding: 10px 18px; }
       .admin-album-item { flex-direction: column; align-items: flex-start; gap: 12px; }
-      .btn-delete-album { width: 100%; text-align: center; }
+      .admin-album-actions { width: 100%; justify-content: space-between; }
+      .btn-delete-album, .btn-edit-album { flex: 1; text-align: center; }
     }
   </style>
 
@@ -488,6 +558,7 @@
     let isAdminMode = false;
     let currentAlbumId = null;
     let pendingAlbumId = null;
+    let editingAlbumId = null;
 
     // Sincronizar en tiempo real desde la nube de Firebase
     const albumsRef = ref(db, 'albums');
@@ -501,7 +572,7 @@
             id: 1,
             title: 'Romance Urbano',
             category: 'Bodas & Eventos',
-            password: '', // Álbum público de muestra
+            password: '',
             photos: [
               { id: 101, url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80', likes: 12 },
               { id: 102, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80', likes: 8 }
@@ -591,7 +662,6 @@
       const album = albums.find(a => a.id === id);
       if (!album) return;
 
-      // Si tiene clave y no es la fotógrafa en panel admin
       if (album.password && album.password.trim() !== '') {
         pendingAlbumId = id;
         document.getElementById('clientPassInput').value = '';
@@ -678,10 +748,105 @@
             <h4>${album.title} ${isPrivate ? '🔒' : ''}</h4>
             <p>${album.category} — ${album.photos ? album.photos.length : 0} fotos ${isPrivate ? `(Clave: ${album.password})` : '(Público)'}</p>
           </div>
-          <button class="btn-delete-album" onclick="window.eliminarAlbumCompleto(${album.id})">Eliminar Álbum</button>
+          <div class="admin-album-actions">
+            <button class="btn-edit-album" onclick="window.abrirModalEditar(${album.id})">Editar</button>
+            <button class="btn-delete-album" onclick="window.eliminarAlbumCompleto(${album.id})">Eliminar</button>
+          </div>
         `;
         adminListContainer.appendChild(item);
       });
+    }
+
+    /* --- LÓGICA DE EDICIÓN DE ÁLBUM --- */
+    window.abrirModalEditar = function(id) {
+      editingAlbumId = id;
+      const album = albums.find(a => a.id === id);
+      if (!album) return;
+
+      document.getElementById('editAlbumTitle').value = album.title;
+      document.getElementById('editAlbumCategory').value = album.category;
+      document.getElementById('editAlbumPassword').value = album.password || '';
+
+      renderEditPhotosList(album);
+      document.getElementById('editAlbumModal').style.display = 'flex';
+    }
+
+    window.cerrarEditModal = function() {
+      document.getElementById('editAlbumModal').style.display = 'none';
+      editingAlbumId = null;
+    }
+
+    function renderEditPhotosList(album) {
+      const grid = document.getElementById('editPhotosGrid');
+      grid.innerHTML = '';
+
+      if (!album.photos || album.photos.length === 0) {
+        grid.innerHTML = '<p style="color: var(--text-muted); font-size: 0.75rem; grid-column: 1/-1;">No quedan fotos en este álbum.</p>';
+        return;
+      }
+
+      album.photos.forEach(photo => {
+        const item = document.createElement('div');
+        item.className = 'edit-photo-item';
+        item.innerHTML = `
+          <img src="${photo.url}">
+          <button class="btn-delete-photo" onclick="window.eliminarFotoIndividual(${album.id}, ${photo.id})" title="Eliminar foto">&times;</button>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    window.eliminarFotoIndividual = function(albumId, photoId) {
+      const album = albums.find(a => a.id === albumId);
+      if (!album) return;
+
+      album.photos = album.photos.filter(p => p.id !== photoId);
+      guardarEnNube();
+      renderEditPhotosList(album);
+      renderApp();
+    }
+
+    window.guardarCambiosEdicion = function(event) {
+      event.preventDefault();
+      const album = albums.find(a => a.id === editingAlbumId);
+      if (!album) return;
+
+      album.title = document.getElementById('editAlbumTitle').value;
+      album.category = document.getElementById('editAlbumCategory').value;
+      album.password = document.getElementById('editAlbumPassword').value.trim();
+
+      const newFilesInput = document.getElementById('editAlbumNewFiles');
+      if (newFilesInput.files && newFilesInput.files.length > 0) {
+        const files = Array.from(newFilesInput.files);
+        let processedCount = 0;
+
+        files.forEach((file, index) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (!album.photos) album.photos = [];
+            album.photos.push({
+              id: Date.now() + index,
+              url: e.target.result,
+              likes: 0,
+              userLiked: false
+            });
+            processedCount++;
+
+            if (processedCount === files.length) {
+              guardarEnNube();
+              alert('¡Álbum actualizado con éxito!');
+              window.cerrarEditModal();
+              renderApp();
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        guardarEnNube();
+        alert('¡Álbum actualizado con éxito!');
+        window.cerrarEditModal();
+        renderApp();
+      }
     }
 
     window.darLike = function(albumId, photoId) {
@@ -793,7 +958,7 @@
     }
 
     window.eliminarAlbumCompleto = function(id) {
-      if (confirm('¿Estás segura de que deseas eliminar este álbum de la nube?')) {
+      if (confirm('¿Estás segura de que deseas eliminar este álbum completo de la nube?')) {
         albums = albums.filter(a => a.id !== id);
         guardarEnNube();
       }
@@ -822,6 +987,41 @@
           <input type="password" id="clientPassInput" placeholder="Clave del álbum..." required>
         </div>
         <button type="submit" class="btn-submit">Ingresar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Edición de Álbum (Panel Admin) -->
+  <div id="editAlbumModal" class="modal-overlay">
+    <div class="album-pass-box">
+      <button class="modal-close" style="top: 15px; right: 20px;" onclick="window.cerrarEditModal()">&times;</button>
+      <h3>Editar Álbum ✏️</h3>
+      <p>Modifica los datos o elimina fotos individuales de esta colección.</p>
+      <form onsubmit="window.guardarCambiosEdicion(event)">
+        <div class="form-group">
+          <label>Título del Álbum</label>
+          <input type="text" id="editAlbumTitle" required>
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <input type="text" id="editAlbumCategory" required>
+        </div>
+        <div class="form-group">
+          <label>Contraseña (Dejar en blanco para hacerlo público)</label>
+          <input type="text" id="editAlbumPassword">
+        </div>
+        
+        <div class="form-group">
+          <label>Gestionar Fotos Actuales (Toca el botón ✕ para borrar una foto)</label>
+          <div class="edit-photos-grid" id="editPhotosGrid"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Agregar más fotos (Opcional)</label>
+          <input type="file" id="editAlbumNewFiles" accept="image/*" multiple>
+        </div>
+
+        <button type="submit" class="btn-submit">Guardar Cambios</button>
       </form>
     </div>
   </div>
