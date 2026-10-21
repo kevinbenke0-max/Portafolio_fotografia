@@ -565,6 +565,45 @@
       set(ref(db, 'albums'), albumsObj);
     }
 
+    // Función de compresión estricta para reducir el peso al tamaño ideal para la nube
+    function comprimirImagenSegura(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1000;
+            const MAX_HEIGHT = 1000;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width = Math.round((width * MAX_HEIGHT) / height);
+                height = MAX_HEIGHT;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Calidad al 75% para garantizar velocidad y evitar sobrecargar Firebase
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     window.renderApp = function() {
       const container = document.getElementById('mainContentContainer');
       const headerContainer = document.getElementById('dynamicHeader');
@@ -789,6 +828,10 @@
       const album = albums.find(a => a.id === editingAlbumId);
       if (!album) return;
 
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      submitBtn.innerText = 'Procesando cambios...';
+      submitBtn.disabled = true;
+
       album.title = document.getElementById('editAlbumTitle').value;
       album.category = document.getElementById('editAlbumCategory').value;
       album.password = document.getElementById('editAlbumPassword').value.trim();
@@ -796,28 +839,21 @@
       const newFilesInput = document.getElementById('editAlbumNewFiles');
       if (newFilesInput.files && newFilesInput.files.length > 0) {
         const files = Array.from(newFilesInput.files);
-        let processed = 0;
-
         for (let index = 0; index < files.length; index++) {
-          const file = files[index];
-          await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              if (!album.photos) album.photos = [];
-              album.photos.push({
-                id: Date.now() + index,
-                url: e.target.result,
-                likes: 0,
-                userLiked: false
-              });
-              resolve();
-            };
-            reader.readAsDataURL(file);
+          const compressedUrl = await comprimirImagenSegura(files[index]);
+          if (!album.photos) album.photos = [];
+          album.photos.push({
+            id: Date.now() + index,
+            url: compressedUrl,
+            likes: 0,
+            userLiked: false
           });
         }
       }
 
       guardarEnNube();
+      submitBtn.innerText = 'Guardar Cambios';
+      submitBtn.disabled = false;
       alert('¡Álbum actualizado con éxito!');
       window.cerrarEditModal();
       renderApp();
@@ -898,23 +934,16 @@
         const files = Array.from(fileInput.files);
         let photosArray = [];
 
-        submitBtn.innerText = 'Subiendo fotos a la nube...';
+        submitBtn.innerText = 'Procesando y guardando fotos...';
         submitBtn.disabled = true;
 
         for (let index = 0; index < files.length; index++) {
-          const file = files[index];
-          await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              photosArray.push({
-                id: Date.now() + index,
-                url: e.target.result,
-                likes: 0,
-                userLiked: false
-              });
-              resolve();
-            };
-            reader.readAsDataURL(file);
+          const compressedUrl = await comprimirImagenSegura(files[index]);
+          photosArray.push({
+            id: Date.now() + index,
+            url: compressedUrl,
+            likes: 0,
+            userLiked: false
           });
         }
 
@@ -932,7 +961,7 @@
         submitBtn.innerText = 'Crear y Subir a la Nube';
         submitBtn.disabled = false;
 
-        alert(`¡Álbum "${title}" creado y guardado en la nube con éxito!`);
+        alert(`¡Álbum "${title}" creado y guardado permanentemente en la nube!`);
         document.getElementById('uploadForm').reset();
       }
     }
