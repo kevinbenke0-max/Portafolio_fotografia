@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CAMY.INSTANTES | Portafolio de Fotografía</title>
   
-  <!-- Tipografías editoriales y elegantes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
@@ -131,7 +130,6 @@
       margin: 0 auto;
     }
 
-    /* Tarjetas de Álbum */
     .album-card {
       position: relative;
       height: 450px;
@@ -170,7 +168,6 @@
     .album-name { font-family: var(--font-title); font-size: 2rem; font-weight: 300; margin-top: 5px; }
     .album-count { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
 
-    /* Tarjetas de Fotos Individuales */
     .photo-card {
       position: relative;
       height: 400px;
@@ -231,7 +228,6 @@
       color: #000;
     }
 
-    /* --- VISORES MODALES --- */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -266,7 +262,6 @@
 
     .modal-close:hover { color: var(--accent); }
 
-    /* Modal emergente */
     .album-pass-box {
       background: var(--card-bg);
       padding: 40px;
@@ -294,7 +289,6 @@
       margin-bottom: 25px;
     }
 
-    /* Grilla para edición de imágenes */
     .edit-photos-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -338,7 +332,6 @@
       justify-content: center;
     }
 
-    /* Botón flotante para volver atrás */
     .btn-back-floating {
       position: fixed;
       bottom: 25px;
@@ -367,7 +360,6 @@
       color: #000;
     }
 
-    /* --- PANEL DE ADMINISTRACIÓN --- */
     #admin-panel {
       display: none;
       padding: 130px 20px 80px;
@@ -533,7 +525,6 @@
     }
   </style>
 
-  <!-- SDKs de Firebase con tu configuración integrada -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -560,26 +551,13 @@
     let pendingAlbumId = null;
     let editingAlbumId = null;
 
-    // Sincronizar en tiempo real desde la nube de Firebase
     const albumsRef = ref(db, 'albums');
     onValue(albumsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         albums = Object.values(data);
       } else {
-        albums = [
-          {
-            id: 1,
-            title: 'Romance Urbano',
-            category: 'Bodas & Eventos',
-            password: '',
-            photos: [
-              { id: 101, url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80', likes: 12 },
-              { id: 102, url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80', likes: 8 }
-            ]
-          }
-        ];
-        guardarEnNube();
+        albums = [];
       }
       renderApp();
     });
@@ -588,6 +566,35 @@
       let albumsObj = {};
       albums.forEach(a => { albumsObj[a.id] = a; });
       set(ref(db, 'albums'), albumsObj);
+    }
+
+    // Función auxiliar para optimizar/comprimir imágenes antes de subir
+    function comprimirImagen(file, maxWidth = 1200, quality = 0.7) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     window.renderApp = function() {
@@ -604,6 +611,10 @@
         headerContainer.innerHTML = '<h2 class="section-title">Colecciones Destacadas</h2>';
         container.className = 'albums-grid';
         floatingBtn.style.display = 'none';
+
+        if(albums.length === 0) {
+          container.innerHTML = '<p style="color: var(--text-muted); text-align: center; grid-column: 1/-1;">Aún no se han publicado álbumes.</p>';
+        }
 
         albums.forEach(album => {
           const coverImg = album.photos && album.photos.length > 0 ? album.photos[0].url : 'portada.jpg';
@@ -757,7 +768,6 @@
       });
     }
 
-    /* --- LÓGICA DE EDICIÓN DE ÁLBUM --- */
     window.abrirModalEditar = function(id) {
       editingAlbumId = id;
       const album = albums.find(a => a.id === id);
@@ -806,10 +816,14 @@
       renderApp();
     }
 
-    window.guardarCambiosEdicion = function(event) {
+    window.guardarCambiosEdicion = async function(event) {
       event.preventDefault();
       const album = albums.find(a => a.id === editingAlbumId);
       if (!album) return;
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      submitBtn.innerText = 'Optimizando y guardando...';
+      submitBtn.disabled = true;
 
       album.title = document.getElementById('editAlbumTitle').value;
       album.category = document.getElementById('editAlbumCategory').value;
@@ -818,35 +832,26 @@
       const newFilesInput = document.getElementById('editAlbumNewFiles');
       if (newFilesInput.files && newFilesInput.files.length > 0) {
         const files = Array.from(newFilesInput.files);
-        let processedCount = 0;
-
-        files.forEach((file, index) => {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            if (!album.photos) album.photos = [];
-            album.photos.push({
-              id: Date.now() + index,
-              url: e.target.result,
-              likes: 0,
-              userLiked: false
-            });
-            processedCount++;
-
-            if (processedCount === files.length) {
-              guardarEnNube();
-              alert('¡Álbum actualizado con éxito!');
-              window.cerrarEditModal();
-              renderApp();
-            }
-          };
-          reader.readAsDataURL(file);
-        });
-      } else {
-        guardarEnNube();
-        alert('¡Álbum actualizado con éxito!');
-        window.cerrarEditModal();
-        renderApp();
+        
+        for (let index = 0; index < files.length; index++) {
+          const file = files[index];
+          const compressedDataUrl = await comprimirImagen(file);
+          if (!album.photos) album.photos = [];
+          album.photos.push({
+            id: Date.now() + index,
+            url: compressedDataUrl,
+            likes: 0,
+            userLiked: false
+          });
+        }
       }
+
+      guardarEnNube();
+      submitBtn.innerText = 'Guardar Cambios';
+      submitBtn.disabled = false;
+      alert('¡Álbum actualizado con éxito!');
+      window.cerrarEditModal();
+      renderApp();
     }
 
     window.darLike = function(albumId, photoId) {
@@ -912,48 +917,48 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    window.crearAlbum = function(event) {
+    window.crearAlbum = async function(event) {
       event.preventDefault();
       const title = document.getElementById('albumTitle').value;
       const category = document.getElementById('albumCategory').value;
       const albumPassword = document.getElementById('albumPassword').value;
       const fileInput = document.getElementById('albumImageFiles');
+      const submitBtn = event.target.querySelector('button[type="submit"]');
 
       if (fileInput.files && fileInput.files.length > 0) {
         const files = Array.from(fileInput.files);
         let photosArray = [];
-        let processedCount = 0;
 
-        files.forEach((file, index) => {
-          const reader = new FileReader();
-          
-          reader.onload = function(e) {
-            photosArray.push({
-              id: Date.now() + index,
-              url: e.target.result,
-              likes: 0,
-              userLiked: false
-            });
-            processedCount++;
+        submitBtn.innerText = 'Optimizando y subiendo a la nube...';
+        submitBtn.disabled = true;
 
-            if (processedCount === files.length) {
-              const nuevoAlbum = {
-                id: Date.now(),
-                title,
-                category,
-                password: albumPassword.trim(),
-                photos: photosArray
-              };
+        for (let index = 0; index < files.length; index++) {
+          const file = files[index];
+          const compressedDataUrl = await comprimirImagen(file);
+          photosArray.push({
+            id: Date.now() + index,
+            url: compressedDataUrl,
+            likes: 0,
+            userLiked: false
+          });
+        }
 
-              albums.unshift(nuevoAlbum);
-              guardarEnNube();
+        const nuevoAlbum = {
+          id: Date.now(),
+          title,
+          category,
+          password: albumPassword.trim(),
+          photos: photosArray
+        };
 
-              alert(`¡Álbum "${title}" creado exitosamente!`);
-              document.getElementById('uploadForm').reset();
-            }
-          }
-          reader.readAsDataURL(file);
-        });
+        albums.unshift(nuevoAlbum);
+        guardarEnNube();
+
+        submitBtn.innerText = 'Crear y Subir a la Nube';
+        submitBtn.disabled = false;
+
+        alert(`¡Álbum "${title}" creado y guardado en la nube con éxito!`);
+        document.getElementById('uploadForm').reset();
       }
     }
 
@@ -967,7 +972,6 @@
 </head>
 <body>
 
-  <!-- Navegación -->
   <nav>
     <div class="logo" onclick="window.showPublicView()">CAMY.INSTANTES</div>
     <div class="nav-links">
@@ -976,7 +980,6 @@
     </div>
   </nav>
 
-  <!-- Modal Contraseña del Cliente para Álbumes Privados -->
   <div id="clientPassModal" class="modal-overlay">
     <div class="album-pass-box">
       <button class="modal-close" style="top: 15px; right: 20px;" onclick="window.cerrarPassModal()">&times;</button>
@@ -991,7 +994,6 @@
     </div>
   </div>
 
-  <!-- Modal de Edición de Álbum (Panel Admin) -->
   <div id="editAlbumModal" class="modal-overlay">
     <div class="album-pass-box">
       <button class="modal-close" style="top: 15px; right: 20px;" onclick="window.cerrarEditModal()">&times;</button>
@@ -1026,18 +1028,15 @@
     </div>
   </div>
 
-  <!-- Visor de Pantalla Completa (Lightbox) -->
   <div id="lightbox" class="modal-overlay" onclick="window.cerrarLightbox()">
     <button class="modal-close" onclick="window.cerrarLightbox()">&times;</button>
     <img id="lightboxImg" src="" alt="Vista ampliada">
   </div>
 
-  <!-- Botón Flotante para Volver -->
   <button id="floatingBackBtn" class="btn-back-floating" style="display: none;" onclick="window.cerrarAlbum()">
     ← Volver a Colecciones
   </button>
 
-  <!-- Vista Pública -->
   <div id="public-view">
     <header class="hero" id="heroSection">
       <div class="hero-content">
@@ -1053,7 +1052,6 @@
     </section>
   </div>
 
-  <!-- Panel de Administración -->
   <section id="admin-panel">
     <div class="admin-box" id="authBox">
       <h2>Acceso Administrador</h2>
